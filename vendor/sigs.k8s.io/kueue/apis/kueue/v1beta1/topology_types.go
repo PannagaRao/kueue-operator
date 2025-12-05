@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,6 +38,27 @@ const (
 	// among multiple topology domains.
 	PodSetPreferredTopologyAnnotation = "kueue.x-k8s.io/podset-preferred-topology"
 
+	// PodSetUnconstrainedTopologyAnnotation indicates that a PodSet does not have any topology requirements.
+	// Kueue admits the PodSet if there's enough free capacity available.
+	// Recommended for PodSets that don't need low-latency or high-throughput pod-to-pod communication,
+	// but want to leverage TAS capabilities improve accuracy of admitting jobs
+	//
+	// +kubebuilder:validation:Type=boolean
+	PodSetUnconstrainedTopologyAnnotation = "kueue.x-k8s.io/podset-unconstrained-topology"
+
+	// PodSetSliceRequiredTopologyAnnotation indicates that a PodSet requires
+	// Topology Aware Scheduling, and requires scheduling each PodSet slice on nodes
+	// within the topology domain corresponding to the topology level
+	// indicated by the annotation value (e.g. within a rack or within a block).
+	PodSetSliceRequiredTopologyAnnotation = "kueue.x-k8s.io/podset-slice-required-topology"
+
+	// PodSetSliceSizeAnnotation describes the requested size of a podset slice
+	// for which Kueue finds a requested topology domain.
+	//
+	// This annotation is required if `kueue.x-k8s.io/podset-slice-required-topology`
+	// is defined.
+	PodSetSliceSizeAnnotation = "kueue.x-k8s.io/podset-slice-size"
+
 	// TopologySchedulingGate is used to delay scheduling of a Pod until the
 	// nodeSelectors corresponding to the assigned topology domain are injected
 	// into the Pod. For the Pod-based integrations the gate is added in webhook
@@ -49,15 +70,12 @@ const (
 	// annotation is set when starting the Job, and removed on stopping the Job.
 	WorkloadAnnotation = "kueue.x-k8s.io/workload"
 
-	// PodSetLabel is a label set on the Job's PodTemplate to indicate the name
-	// of the PodSet of the admitted Workload corresponding to the PodTemplate.
-	// The label is set when starting the Job, and removed on stopping the Job.
-	PodSetLabel = "kueue.x-k8s.io/podset"
-
 	// TASLabel is a label set on the Job's PodTemplate to indicate that the
 	// PodSet is admitted using TopologyAwareScheduling, and all Pods created
 	// from the Job's PodTemplate also have the label. For the Pod-based
 	// integrations the label is added in webhook during the Pod creation.
+	// Depracted. This label is no longer added by TAS to Pod. The constant is
+	// only kept to support "reading" the label until 0.16.
 	TASLabel = "kueue.x-k8s.io/tas"
 
 	// PodGroupPodIndexLabel is a label set on the Pod's metadata belonging
@@ -68,6 +86,10 @@ const (
 	// belonging to a Pod group. It indicates a label name used to retrieve
 	// the Pod's index within the group.
 	PodGroupPodIndexLabelAnnotation = "kueue.x-k8s.io/pod-group-pod-index-label"
+
+	// PodSetGroupName is an annotation indicating the name of the group of PodSets. PodSet Group
+	// is a unit flavor assignment and topology domain fitting.
+	PodSetGroupName = "kueue.x-k8s.io/podset-group-name"
 )
 
 // TopologySpec defines the desired state of Topology
@@ -77,7 +99,7 @@ type TopologySpec struct {
 	// +required
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=8
+	// +kubebuilder:validation:MaxItems=16
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="field is immutable"
 	// +kubebuilder:validation:XValidation:rule="size(self.filter(i, size(self.filter(j, j == i)) > 1)) == 0",message="must be unique"
 	// +kubebuilder:validation:XValidation:rule="size(self.filter(i, i.nodeLabel == 'kubernetes.io/hostname')) == 0 || self[size(self) - 1].nodeLabel == 'kubernetes.io/hostname'",message="the kubernetes.io/hostname label can only be used at the lowest level of topology"
@@ -109,9 +131,11 @@ type TopologyLevel struct {
 
 // Topology is the Schema for the topology API
 type Topology struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the metadata of the Topology.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// spec is the specification of the Topology.
 	Spec TopologySpec `json:"spec,omitempty"`
 }
 
