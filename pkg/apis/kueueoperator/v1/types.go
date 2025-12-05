@@ -70,6 +70,12 @@ type KueueConfiguration struct {
 	// This default could change over time.
 	// +optional
 	Preemption Preemption `json:"preemption"`
+	// resources configures Dynamic Resource Allocation (DRA) support in Kueue.
+	// When resources.deviceClassMappings is configured, Kueue can track and
+	// enforce quotas for DRA devices in ClusterQueues.
+	// resources is optional.
+	// +optional
+	Resources Resources `json:"resources"`
 }
 
 // KueueStatus defines the observed state of Kueue
@@ -326,11 +332,12 @@ type Resources struct {
 	// deviceClassMappings defines mappings from Kubernetes DeviceClass names
 	// to Kueue resource names for DRA quota tracking in ClusterQueues.
 	// Each DeviceClass name can only appear in one mapping.
-	// deviceClassMappings is limited to a maximum of 4 items.
+	// deviceClassMappings is limited to a maximum of 64 items.
 	// +listType=map
 	// +listMapKey=name
-	// +kubebuilder:validation:MaxItems=4
+	// +kubebuilder:validation:MaxItems=64
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.all(m1, m1.deviceClassNames.all(d, self.all(m2, m2 == m1 || !m2.deviceClassNames.exists(e, e == d))))",message="each DeviceClass name can only appear in one mapping"
 	DeviceClassMappings []DeviceClassMapping `json:"deviceClassMappings,omitempty"`
 }
 
@@ -338,16 +345,18 @@ type Resources struct {
 type DeviceClassMapping struct {
 	// name is the Kueue resource name used in ClusterQueue quotas
 	// (e.g., "nvidia.com/gpu").
-	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:XValidation:rule="self.matches(r\"\"\"^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/)?[a-z0-9]([-a-z0-9]*[a-z0-9])?$\"\"\")",message="name must be a valid Kubernetes resource name"
 	// +required
 	Name string `json:"name"`
 
 	// deviceClassNames is the list of Kubernetes DeviceClass names
 	// (e.g., "gpu.nvidia.com") that map to the resource name above.
 	// +listType=set
-	// +kubebuilder:validation:MaxItems=4
+	// +kubebuilder:validation:MaxItems=64
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:XValidation:rule="self.all(x, x.matches(r\"\"\"^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*\\/)?[a-z0-9]([-a-z0-9]*[a-z0-9])?$\"\"\"))",message="each device class name must be a valid Kubernetes resource name"
 	// +required
 	DeviceClassNames []string `json:"deviceClassNames"`
 }
