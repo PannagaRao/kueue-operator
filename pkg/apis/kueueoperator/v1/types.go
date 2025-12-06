@@ -320,3 +320,34 @@ type Preemption struct {
 	// +required
 	PreemptionPolicy PreemptionPolicy `json:"preemptionPolicy"`
 }
+
+// Resources configures Dynamic Resource Allocation (DRA) support in Kueue.
+type Resources struct {
+	// deviceClassMappings defines mappings from Kubernetes DeviceClass names
+	// to Kueue resource names for DRA quota tracking in ClusterQueues.
+	// Each DeviceClass name can only appear in one mapping.
+	// deviceClassMappings is limited to a maximum of 4 items.
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=4
+	// +optional
+	DeviceClassMappings []DeviceClassMapping `json:"deviceClassMappings,omitempty"`
+}
+
+// DeviceClassMapping maps Kubernetes DeviceClass names to a Kueue resource name.
+type DeviceClassMapping struct {
+	// name is the Kueue resource name used in ClusterQueue quotas
+	// (e.g., "nvidia.com/gpu").
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:MinLength=1
+	// +required
+	Name string `json:"name"`
+
+	// deviceClassNames is the list of Kubernetes DeviceClass names
+	// (e.g., "gpu.nvidia.com") that map to the resource name above.
+	// +listType=set
+	// +kubebuilder:validation:MaxItems=4
+	// +kubebuilder:validation:MinItems=1
+	// +required
+	DeviceClassNames []string `json:"deviceClassNames"`
+}
