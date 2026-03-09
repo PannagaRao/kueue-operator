@@ -16,10 +16,13 @@ IMAGE_REGISTRY ?=registry.svc.ci.openshift.org
 OPERATOR_VERSION ?= 1.3.0
 OPERATOR_SDK_VERSION ?= v1.37.0
 # These are targets for pushing images
-OPERATOR_IMAGE ?= registry.redhat.io/kueue/kueue-rhel9-operator:latest
+# OPERATOR_IMAGE ?= quay.io/rh-pbhojara/testrepo/kueue-operator:latest/lws
+OPERATOR_IMAGE ?= quay.io/rh-pbhojara/testrepo/kueue-operator:dra
 BUNDLE_IMAGE ?= mustchange
-KUEUE_IMAGE ?= registry.redhat.io/kueue/kueue-rhel9:latest
+KUEUE_IMAGE ?= quay.io/redhat-user-workloads/kueue-operator-tenant/kueue-operand-main@sha256:9ec67a1b3a73edce5ee91d236f4ee2902daf09f6b0bc5d932c10cdee66e654d3
+# KUEUE_IMAGE ?= quay.io/redhat-user-workloads/kueue-operator-tenant/kueue-operand-1-2@sha256:3c25aae59b9cac3a30cfb51d01cb033509608c317764de46a227135133d48fff
 MUST_GATHER_IMAGE ?= registry.redhat.io/kueue/kueue-must-gather-rhel9:latest
+
 
 KUBECONFIG ?= ${HOME}/.kube/config
 
@@ -83,14 +86,13 @@ bundle-generate: operator-sdk regen-crd manifests
 
 .PHONY: deploy-ocp
 deploy-ocp:
-	@KUEUE_IMAGE=$$(cat .kueue_image); \
 	hack/update-deploy-files.sh $(OPERATOR_IMAGE) $$KUEUE_IMAGE
 	oc apply -f deploy/
 	oc apply -f deploy/crd/
 	oc apply -f test/e2e/bindata/assets/08_kueue_default.yaml
 	hack/revert-deploy-files.sh $(OPERATOR_IMAGE) $$KUEUE_IMAGE
 	echo "Waiting for Kueue Controller Manager..."
-	timeout 300s bash -c 'until oc get deployment kueue-controller-manager -n openshift-kueue-operator -o jsonpath="{.status.conditions[?(@.type==\"Available\")].status}" | grep -q "True"; do sleep 10; echo "Still waiting..."; done'
+	timeout 30s bash -c 'until oc get deployment kueue-controller-manager -n openshift-kueue-operator -o jsonpath="{.status.conditions[?(@.type==\"Available\")].status}" | grep -q "True"; do sleep 10; echo "Still waiting..."; done'
 	echo "Kueue Controller Manager is ready"
 
 .PHONY: undeploy-ocp

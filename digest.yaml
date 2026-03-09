@@ -1,0 +1,27 @@
+apiVersion: config.openshift.io/v1
+kind: ImageTagMirrorSet
+metadata:
+  name: kueue-mirrorset
+spec:
+  imageTagMirrors:
+    - mirrors:
+        - quay.io/redhat-user-workloads/kueue-operator-tenant/kueue-operator-1-2
+      source: registry.redhat.io/kueue/kueue-rhel9-operator
+    - mirrors:
+        - quay.io/redhat-user-workloads/kueue-operator-tenant/kueue-operand-1-2
+      source: registry.redhat.io/kueue/kueue-rhel9
+
+---
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: kueue-digest-mirrorset
+spec:
+  imageDigestMirrors:
+    - mirrors:
+        - quay.io/redhat-user-workloads/kueue-operator-tenant/kueue-operator-1-2
+      source: registry.redhat.io/kueue/kueue-rhel9-operator
+    - mirrors:
+        - quay.io/redhat-user-workloads/kueue-operator-tenant/kueue-operand-1-2
+      source: registry.redhat.io/kueue/kueue-rhel9
+

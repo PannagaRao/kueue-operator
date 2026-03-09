@@ -1,0 +1,47 @@
+  apiVersion: leaderworkerset.x-k8s.io/v1
+  kind: LeaderWorkerSet
+  metadata:
+    name: leaderworkerset-leader-worker
+    namespace: kueue-managed
+    labels:
+      kueue.x-k8s.io/queue-name: user-queue
+  spec:
+    replicas: 4
+    leaderWorkerTemplate:
+      size: 1 
+      leaderTemplate:
+        metadata:
+          labels:
+            role: leader
+        spec:
+          containers:
+          - name: leader
+            image: quay.io/prometheus/busybox:latest
+            command: ["sh", "-c", "echo 'I am leader' && sleep 3000"]
+            resources:
+              requests:
+                cpu: "50m"
+              limits:
+                cpu: "100m"
+      workerTemplate:
+        metadata:
+          labels:
+            role: worker
+        spec:
+          containers:
+          - name: worker
+            image: quay.io/prometheus/busybox:latest
+            command: ["sh", "-c", "echo 'I am worker' && sleep 3000"]
+            ports:
+            - containerPort: 8080
+            resources:
+              requests:
+                cpu: "50m"
+              limits:
+                cpu: "100m"
+    rolloutStrategy:
+      type: RollingUpdate
+      rollingUpdateConfiguration:
+        maxUnavailable: 2
+        maxSurge: 2
+

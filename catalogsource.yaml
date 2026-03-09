@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: kueue-test-catalog
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: quay.io/rh-pbhojara/kueue-catalog:latest
+  displayName: Red Hat Build of Kueue Test Catalog - 1.2.0
+  publisher: OperatorHub.io

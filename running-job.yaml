@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: long-running-job
+  namespace: default  # Change to your namespace
+  labels:
+    kueue.x-k8s.io/queue-name: user-queue  # Change to your queue name
+spec:
+  suspend: false  # Set to true if you want Kueue to manage when it starts
+  template:
+    spec:
+      containers:
+      - name: long-running-container
+        image: busybox:latest
+        command: ["/bin/sh", "-c"]
+        args: ["sleep infinity"]  # This keeps the job running indefinitely
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+      restartPolicy: Never

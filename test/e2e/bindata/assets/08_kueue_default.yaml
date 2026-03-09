@@ -15,5 +15,10 @@ spec:
       - Pod
       - Deployment
       - StatefulSet
-      - JobSet
-      - LeaderWorkerSet
+    resources:
+      deviceClassMappings:
+      - name: "nvidia.com/gpu"
+        deviceClassNames:
+        - "gpu.nvidia.com"
+    # workloadManagement:
+    #   labelPolicy: None

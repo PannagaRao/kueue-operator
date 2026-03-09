@@ -1,0 +1,19 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: test-cq
+spec:
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: In
+      values: ["e2e-metrics-test"] 
+  resourceGroups:
+  - coveredResources: ["cpu", "memory"]
+    flavors:
+    - name: test-flavor
+      resources:
+      - name: "cpu"
+        nominalQuota: 1
+      - name: "memory"
+        nominalQuota: 1Gi

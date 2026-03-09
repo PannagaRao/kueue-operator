@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: curl-metrics
+  namespace: openshift-kueue-operator
+spec:
+  serviceAccountName: kueue-controller-manager
+  terminationGracePeriodSeconds: 1
+  containers:
+    - name: curl-metrics
+      image: quay.io/openshift/origin-cli:latest
+      command:
+        - sh
+        - -c
+        - "echo Hello Kueue; sleep 3600"
+      volumeMounts:
+        - name: metrics-certs
+          mountPath: /etc/kueue/metrics/certs
+          readOnly: true
+  volumes:
+    - name: metrics-certs
+      secret:
+        secretName: metrics-server-cert
