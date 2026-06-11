@@ -384,8 +384,8 @@ func (c *TargetConfigReconciler) sync(ctx context.Context, syncCtx factory.SyncC
 	if !c.draPartitionableDevicesEnabled {
 		for _, m := range kueue.Spec.Config.Resources.DeviceClassMappings {
 			if len(m.Sources) > 0 {
-				klog.Warningf("DRAPartitionableDevices K8s feature gate is not enabled. Sources configuration will not take effect")
-				c.eventRecorder.Eventf("DRAPartitionableDevicesUnsupported", "DRAPartitionableDevices K8s feature gate is not enabled, sources will not take effect until the feature gate is enabled")
+				klog.Warningf("DRAPartitionableDevices K8s feature gate is not enabled. Sources will be stripped to prevent quota bypass")
+				c.eventRecorder.Eventf("DRAPartitionableDevicesUnsupported", "DRAPartitionableDevices K8s feature gate is not enabled, sources will be stripped to prevent quota bypass")
 				missingDependencies = append(missingDependencies, "DRA Partitionable Devices requires the DRAPartitionableDevices K8s feature gate to be enabled")
 				break
 			}

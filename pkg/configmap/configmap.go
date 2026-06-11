@@ -165,7 +165,7 @@ func buildFairSharing(preemption kueue.Preemption) *configapi.FairSharing {
 	}
 }
 
-func buildResources(resources kueue.Resources) *configapi.Resources {
+func buildResources(resources kueue.Resources, draPartitionableDevicesEnabled bool) *configapi.Resources {
 	if len(resources.DeviceClassMappings) == 0 {
 		return nil
 	}
@@ -184,21 +184,23 @@ func buildResources(resources kueue.Resources) *configapi.Resources {
 			DeviceClassNames: deviceClassNames,
 		}
 
-		for _, s := range m.Sources {
-			source := configapi.DeviceClassSourceConfig{
-				Counter: &configapi.DeviceClassCounterSource{
-					Name:   s.Counter.Name,
-					Driver: s.Counter.Driver,
-				},
-			}
-			if s.Counter.DeviceSelector.CEL.Expression != "" {
-				source.Counter.DeviceSelector = resourcev1.DeviceSelector{
-					CEL: &resourcev1.CELDeviceSelector{
-						Expression: s.Counter.DeviceSelector.CEL.Expression,
+		if draPartitionableDevicesEnabled {
+			for _, s := range m.Sources {
+				source := configapi.DeviceClassSourceConfig{
+					Counter: &configapi.DeviceClassCounterSource{
+						Name:   s.Counter.Name,
+						Driver: s.Counter.Driver,
 					},
 				}
+				if s.Counter.DeviceSelector.CEL.Expression != "" {
+					source.Counter.DeviceSelector = resourcev1.DeviceSelector{
+						CEL: &resourcev1.CELDeviceSelector{
+							Expression: s.Counter.DeviceSelector.CEL.Expression,
+						},
+					}
+				}
+				mapping.Sources = append(mapping.Sources, source)
 			}
-			mapping.Sources = append(mapping.Sources, source)
 		}
 
 		mappings = append(mappings, mapping)
@@ -348,7 +350,7 @@ func defaultKueueConfigurationTemplate(namespace string, kueueCfg kueue.KueueCon
 		ManageJobsWithoutQueueName: buildManagedJobsWithoutQueueName(kueueCfg.WorkloadManagement),
 		WaitForPodsReady:           buildWaitForPodsReady(kueueCfg.GangScheduling),
 		FairSharing:                buildFairSharing(kueueCfg.Preemption),
-		Resources:                  buildResources(kueueCfg.Resources),
+		Resources:                  buildResources(kueueCfg.Resources, draPartitionableDevicesEnabled),
 		FeatureGates:               buildFeatureGates(kueueCfg.Integrations.Frameworks, draExtendedResourceEnabled, draPartitionableDevicesEnabled, kueueCfg.Resources, kueueCfg.Integrations.ExternalFrameworks, kueueCfg.MultiKueue),
 		MultiKueue:                 mapOperatorMultiKueueToKueue(kueueCfg.MultiKueue, gvrToKind),
 		AdmissionFairSharing:       admissionFairSharing,

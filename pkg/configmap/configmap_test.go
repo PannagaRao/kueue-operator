@@ -1121,6 +1121,173 @@ webhook:
 			},
 			wantErr: nil,
 		},
+		"sources preserved when partitionable devices gate enabled": {
+			draPartitionableDevicesEnabled: true,
+			configuration: kueue.KueueConfiguration{
+				Integrations: kueue.Integrations{
+					Frameworks: []kueue.KueueIntegration{kueue.KueueIntegrationBatchJob},
+				},
+				Resources: kueue.Resources{
+					DeviceClassMappings: []kueue.DeviceClassMapping{
+						{
+							Name:             "gpu.memory",
+							DeviceClassNames: []kueue.DeviceClassName{"gpu.nvidia.com", "mig.nvidia.com"},
+							Sources: []kueue.DeviceClassSourceConfig{
+								{
+									Type: kueue.DeviceClassSourceTypeCounter,
+									Counter: kueue.DeviceClassCounterSource{
+										Name:   "memory",
+										Driver: "gpu.nvidia.com",
+										DeviceSelector: kueue.DeviceSelector{
+											Type: kueue.DeviceSelectorTypeCEL,
+											CEL:  kueue.CELDeviceSelector{Expression: "device.driver == 'gpu.nvidia.com'"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantCfgMap: &corev1.ConfigMap{
+				Data: map[string]string{
+					controllerManagerConfigYaml: `apiVersion: config.kueue.x-k8s.io/v1beta2
+clientConnection:
+  burst: 100
+  qps: 50
+controller:
+  groupKindConcurrency:
+    ClusterQueue.kueue.x-k8s.io: 1
+    Job.batch: 5
+    LocalQueue.kueue.x-k8s.io: 1
+    Pod: 5
+    ResourceFlavor.kueue.x-k8s.io: 1
+    Workload.kueue.x-k8s.io: 5
+featureGates:
+  KueueDRAIntegrationPartitionableDevices: true
+health:
+  healthProbeBindAddress: :8081
+integrations:
+  frameworks:
+  - batch/job
+internalCertManagement:
+  enable: false
+kind: Configuration
+leaderElection:
+  leaderElect: true
+  leaseDuration: 2m17s
+  renewDeadline: 1m47s
+  resourceLock: ""
+  resourceName: ""
+  resourceNamespace: ""
+  retryPeriod: 26s
+manageJobsWithoutQueueName: false
+managedJobsNamespaceSelector:
+  matchLabels:
+    kueue.openshift.io/managed: "true"
+metrics:
+  bindAddress: :8443
+  enableClusterQueueResources: true
+namespace: test
+resources:
+  deviceClassMappings:
+  - deviceClassNames:
+    - gpu.nvidia.com
+    - mig.nvidia.com
+    name: gpu.memory
+    sources:
+    - counter:
+        deviceSelector:
+          cel:
+            expression: device.driver == 'gpu.nvidia.com'
+        driver: gpu.nvidia.com
+        name: memory
+webhook:
+  port: 9443
+`,
+				},
+			},
+			wantErr: nil,
+		},
+		"sources stripped when partitionable devices gate disabled": {
+			draPartitionableDevicesEnabled: false,
+			configuration: kueue.KueueConfiguration{
+				Integrations: kueue.Integrations{
+					Frameworks: []kueue.KueueIntegration{kueue.KueueIntegrationBatchJob},
+				},
+				Resources: kueue.Resources{
+					DeviceClassMappings: []kueue.DeviceClassMapping{
+						{
+							Name:             "gpu.memory",
+							DeviceClassNames: []kueue.DeviceClassName{"gpu.nvidia.com", "mig.nvidia.com"},
+							Sources: []kueue.DeviceClassSourceConfig{
+								{
+									Type: kueue.DeviceClassSourceTypeCounter,
+									Counter: kueue.DeviceClassCounterSource{
+										Name:   "memory",
+										Driver: "gpu.nvidia.com",
+										DeviceSelector: kueue.DeviceSelector{
+											Type: kueue.DeviceSelectorTypeCEL,
+											CEL:  kueue.CELDeviceSelector{Expression: "device.driver == 'gpu.nvidia.com'"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantCfgMap: &corev1.ConfigMap{
+				Data: map[string]string{
+					controllerManagerConfigYaml: `apiVersion: config.kueue.x-k8s.io/v1beta2
+clientConnection:
+  burst: 100
+  qps: 50
+controller:
+  groupKindConcurrency:
+    ClusterQueue.kueue.x-k8s.io: 1
+    Job.batch: 5
+    LocalQueue.kueue.x-k8s.io: 1
+    Pod: 5
+    ResourceFlavor.kueue.x-k8s.io: 1
+    Workload.kueue.x-k8s.io: 5
+health:
+  healthProbeBindAddress: :8081
+integrations:
+  frameworks:
+  - batch/job
+internalCertManagement:
+  enable: false
+kind: Configuration
+leaderElection:
+  leaderElect: true
+  leaseDuration: 2m17s
+  renewDeadline: 1m47s
+  resourceLock: ""
+  resourceName: ""
+  resourceNamespace: ""
+  retryPeriod: 26s
+manageJobsWithoutQueueName: false
+managedJobsNamespaceSelector:
+  matchLabels:
+    kueue.openshift.io/managed: "true"
+metrics:
+  bindAddress: :8443
+  enableClusterQueueResources: true
+namespace: test
+resources:
+  deviceClassMappings:
+  - deviceClassNames:
+    - gpu.nvidia.com
+    - mig.nvidia.com
+    name: gpu.memory
+webhook:
+  port: 9443
+`,
+				},
+			},
+			wantErr: nil,
+		},
 	}
 
 	for desc, tc := range testCases {
